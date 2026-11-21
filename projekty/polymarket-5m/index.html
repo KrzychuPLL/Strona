@@ -44,8 +44,8 @@
   <ul>
     <li>Ceny są dobrze skalibrowane: Brier score ceny rynkowej wynosi 0,1543, a modelu 0,1546. Jedyne systematyczne odchylenie to niepełna wycena luki na otwarciu (ok. 63%), zbyt mała, by pokryć koszty.</li>
     <li>Model ma przewagę informacyjną nad ceną, ale trwa ona ok. 3 sekundy. Bez infrastruktury o niskich opóźnieniach nie da się jej wykorzystać.</li>
-    <li>Trwale zarabia 13 z ok. 35 tys. portfeli. Wszystkie kupują prawie pewnych faworytów po ok. 0,99 USD, co umożliwia kształt opłaty.</li>
-    <li>Reguła „kup faworyta po najwyżej 0,98 USD, gdy model daje mu co najmniej 99,9%” daje +2,6¢ na akcję jako zlecenie limit (t = 8,4) i +2,0¢ jako FOK. Pojemność tej strategii jest mała.</li>
+    <li>Trwale zarabia 13 z ok. 35 tys. portfeli. Wszystkie kupują prawie pewnych faworytów po ok. 0,99 USD, co umożliwia kształt opłaty dla takerów.</li>
+    <li>Reguła „kup faworyta po najwyżej 0,98 USD, gdy model daje mu co najmniej 99,9%” daje +2,6¢ na akcję jako zlecenie limit (t = 8,4) i +2,0¢ jako FOK. Pojemność tej strategii jest jednak mała.</li>
   </ul>
   <ol class="toc">
     <li><a href="#regula">Jak dokładnie rozliczane są rynki</a></li>
@@ -73,7 +73,7 @@
   <p>gdzie B to średnia z 60 s przed startem, a S<sub>t</sub> to bieżąca cena. Efektywny horyzont jest o 40 sekund krótszy niż czas do końca okna, bo uśrednianie ostatniej minuty zmniejsza wariancję wyniku. W ostatniej minucie wzór uwzględnia dodatkowo zrealizowaną część średniej. Oba warianty zweryfikowano symulacją Monte Carlo. Model nie ma żadnych parametrów dopasowanych do wyników rynków, więc nie może być „przeuczony”.</p>
 
   <h2 id="kalibracja">3. Czy ceny są skalibrowane</h2>
-  <p>Jeśli rynek jest efektywny, kontrakty wyceniane na 30% powinny wygrywać w ok. 30% przypadków. Tak właśnie jest: Brier score ceny rynkowej wynosi 0,1543, a modelu 0,1546, czyli cena jest co najmniej tak dobrą prognozą jak model. Model wypada nieco lepiej w fazie 180–240 s, rynek w ostatniej minucie.</p>
+  <p>Jeśli rynek jest efektywny, kontrakty wyceniane na 30% powinny wygrywać w ok. 30% przypadków. Tak właśnie jest: Brier score ceny rynkowej wynosi 0,1543, a modelu 0,1546, czyli cena jest co najmniej tak dobrą prognozą jak model. Model wypada nieco lepiej w fazie 180–240 s. Rynek w ostatnich 60 sekundach.</p>
   <figure><a href="../../assets/img/r01_kalibracja.png"><img src="../../assets/img/r01_kalibracja.png" alt="Wykres kalibracji ceny rynkowej i modelu" loading="lazy"></a><figcaption>Kalibracja: przewidywane prawdopodobieństwo a zrealizowana częstość wygranej Up.</figcaption></figure>
   <h3>Luka na otwarciu</h3>
   <p>Jedno odchylenie jest systematyczne. Na otwarciu rynek uwzględnia tylko ok. 63% różnicy między ceną bieżącą a „ceną do pobicia” (nachylenie 0,63 w obu połowach okresu). To nieefektywność w ścisłym sensie, ale zbyt mała, by przetrwała opłaty i poślizg.</p>
