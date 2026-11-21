@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7394% w backteście. Ile z tego zostaje poza próbą? · Pierwiastek Ryzyka</title>
+<meta name="description" content="Rozbiórka strategii wybicia na małych i średnich spółkach GPW: koszty transakcyjne, płynność, benchmarki, podokresy i walk-forward. Od 7394% w backteście do wyniku poza próbą.">
+<link rel="icon" href="../../assets/favicon.png">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="me" href="../../"><img src="../../assets/logo.png" alt=""><span>Pierwiastek Ryzyka</span></a>
+    <nav><a href="../../o-mnie/">O mnie</a><a href="../../#badania">Researche</a><a href="https://github.com/pierwiastekryzyka">GitHub</a></nav>
+  </header>
+</div>
+
+<main class="wrap article">
+  <h1>7394% w backteście. Ile z tego zostaje poza próbą?</h1>
+  <p class="meta">październik 2026 · GPW, dane dzienne 01.2016–10.2026 · 476 spółek · ok. 70 tys. backtestów</p>
+
+  <p>Ten tekst zaczyna się od wykresu, który wygląda zbyt dobrze. Strategia wybicia na małych i średnich spółkach z GPW zamienia w backteście 10 tys. zł ze stycznia 2016 roku w ok. 750 tys. zł pod koniec października 2026, czyli +7394%, prawie 50% rocznie. Taki wynik nie jest odkryciem, tylko pytaniem: <i>gdzie jest błąd?</i></p>
+  <p>Reszta tekstu to historia odejmowania. Po kolei dokładam do symulacji to, czego brakuje w idealnym świecie backtestu: całe akcje zamiast ułamków, spread, limit płynności, uczciwy benchmark, podział na okresy i wreszcie walk-forward, czyli dobór parametrów wyłącznie na podstawie przeszłości. Każdy krok zabiera część wyniku. Ciekawe jest to, który zabiera najwięcej.</p>
+  <blockquote><p>Szczegóły strategii, jej parametry i silnik backtestowy pozostają prywatne. Opis poniżej jest celowo ogólny: pokazuje rodzinę strategii i metodę weryfikacji, a nie przepis do skopiowania. Tekst ma charakter edukacyjny i nie jest rekomendacją inwestycyjną.</p></blockquote>
+
+  <h3>W skrócie</h3>
+  <ul>
+    <li>Strategia z autorskimi parametrami daje w backteście 2016–2026 CAGR 49,2% przy maksymalnym obsunięciu −39% i wskaźniku Sharpe'a 1,31.</li>
+    <li>Realia wykonania (całe akcje, spread 0,5%, limit 10% dziennego obrotu, pominięcie akcji poniżej 1 zł) obniżają CAGR do 43,8%. Koszty nie są głównym problemem.</li>
+    <li>Uczciwszy benchmark też niewiele zmienia: względem indeksu małych spółek sWIG80TR beta wynosi ok. 1,1, a alfa Jensena ok. 29% rocznie.</li>
+    <li>Wynik jest nierówny w czasie: 24,5% rocznie w latach 2016–2019, 146,5% w hossie 2020–2021 i 33,9% od 2022 roku, przy obsunięciu do −57%.</li>
+    <li>Prawdziwy test to walk-forward. Gdy parametry są dobierane wyłącznie na danych z przeszłości, CAGR w latach 2018–2026 spada z 49,8% do 11–19% w trzech uruchomieniach, czyli do poziomu indeksu małych spółek (12,5%). Przewaga poza próbą jest bliska zera.</li>
+    <li>Parametry wybierane w kolejnych oknach skaczą po całym przeszukiwanym zakresie, a wynik w treningu nie przewiduje wyniku w teście. To klasyczny obraz przeuczenia przy 20 parametrach.</li>
+  </ul>
+  <ol class="toc">
+    <li><a href="#strategia">Strategia w zarysie</a></li>
+    <li><a href="#silnik">Silnik, dane i założenia</a></li>
+    <li><a href="#bledy">Trzy błędy, które poprawiały wynik</a></li>
+    <li><a href="#koszty">Odejmowanie realiów rynku</a></li>
+    <li><a href="#benchmark">Względem czego mierzyć alfę</a></li>
+    <li><a href="#okresy">Jedna hossa czy trwała przewaga</a></li>
+    <li><a href="#walk-forward">Walk-forward: parametry bez znajomości przyszłości</a></li>
+    <li><a href="#stabilnosc">Czy optymalizator znajduje strukturę, czy szum</a></li>
+    <li><a href="#wnioski">Wnioski i ograniczenia</a></li>
+  </ol>
+
+  <h2 id="strategia">1. Strategia w zarysie</h2>
+  <p>Strategia należy do rodziny <b>momentum szeregów czasowych</b> (time-series momentum) w wersji wybicia, której najsłynniejszym przodkiem są zasady „Żółwi” Richarda Dennisa z lat 80. Idea jest prosta: kupować spółki, które właśnie ustanawiają długoterminowe maksimum, i trzymać je, dopóki trend trwa. Za tą prostotą stoi dobrze udokumentowana anomalia: inwestorzy reagują na nowe informacje z opóźnieniem (niedoreakcja), a potem trend wzmacnia stadne zachowanie. Na małych spółkach, które śledzi niewielu analityków, efekt bywa najsilniejszy.</p>
+  <p>Strategia składa się z pięciu klocków. Każdy ma swoje parametry:</p>
+  <table>
+    <thead><tr><th>Klocek</th><th>Co robi</th><th class="n">Parametry</th></tr></thead>
+    <tbody>
+      <tr><td>Wejście</td><td>zamknięcie na najwyższym poziomie z długiego okna, potwierdzenie krótkoterminowego impetu, opcjonalnie warunek korekty</td><td class="n">7</td></tr>
+      <tr><td>Uniwersum</td><td>przedział kapitalizacji (z możliwością wyłączenia), minimalna cena akcji</td><td class="n">4</td></tr>
+      <tr><td>Wyjście</td><td>stop kroczący od najwyższego zamknięcia w trakcie pozycji, wyjście czasowe przy braku nowych sygnałów, warunek utrzymania rosnącej pozycji</td><td class="n">5</td></tr>
+      <tr><td>Reżim rynku</td><td>miara szerokości rynku: jaka część spółek jest w trendzie spadkowym</td><td class="n">3</td></tr>
+      <tr><td>Wielkość pozycji</td><td>stały ułamek kapitału na sygnał, odrębne traktowanie wybić na historyczne maksimum</td><td class="n">1</td></tr>
+    </tbody>
+  </table>
+  <p>Razem to 20 parametrów: liczby (np. długość okna wybicia, poziom stopu, granice kapitalizacji) i przełączniki, które włączają lub wyłączają poszczególne filtry. Na siatce, którą przeszukuje optymalizator, daje to ok. 6·10<sup>18</sup> kombinacji. Ta liczba wróci w sekcji o walk-forwardzie, bo przy takiej przestrzeni „najlepszy zestaw” prawie na pewno jest w części dziełem przypadku.</p>
+  <p>Jeden klocek działa inaczej niż w podręcznikach. Typowy filtr reżimu wyłącza strategię, gdy szeroki rynek jest w trendzie spadkowym. Tutaj miara szerokości rynku jest wykorzystywana w odwrotny, kontrariański sposób. Szczegółów nie podaję, ale wrócę do tego klocka przy analizie stabilności parametrów.</p>
+
+  <h2 id="silnik">2. Silnik, dane i założenia</h2>
+  <p>Backtesty liczy własny, zdarzeniowy silnik napisany w Javie, z modułami optymalizacji (pełna permutacja, próbkowanie losowe, algorytm genetyczny) i walk-forwardu. Założenia są konserwatywne:</p>
+  <ul>
+    <li><b>Dane:</b> dzienne notowania 476 spółek z rynku głównego GPW (Stooq), styczeń 2016 – październik 2026.</li>
+    <li><b>Brak zaglądania w przyszłość:</b> sygnał powstaje na zamknięciu sesji, a zlecenie jest realizowane po cenie otwarcia następnej sesji.</li>
+    <li><b>Prowizja:</b> 1% wartości transakcji w każdą stronę, czyli kilka razy więcej niż u typowego polskiego brokera. Część tego narzutu ma pokryć poślizg.</li>
+    <li><b>Kapitał:</b> 10 tys. zł na starcie, stały ułamek kapitału na pozycję, bez dźwigni i krótkiej sprzedaży.</li>
+  </ul>
+
+  <h2 id="bledy">3. Trzy błędy, które poprawiały wynik</h2>
+  <p>Każdy z poniższych błędów zawyżał wynik, a żaden nie powodował komunikatu o błędzie. To najgroźniejszy rodzaj błędów w badaniach ilościowych: wynik wygląda wiarygodnie, tylko jest lepszy, niż powinien.</p>
+  <h3>Spółka notowana dwa razy</h3>
+  <p>Po zmianie nazwy lub wydzieleniu części działalności ta sama historia notowań potrafi trafić do danych pod dwoma symbolami. Strategia widziała wtedy dwie „różne” spółki z identycznym wybiciem i otwierała podwójną pozycję. Pomogło czyste rozpakowanie danych od zera zamiast nadpisywania starych plików.</p>
+  <h3>Płynność z niewłaściwego dnia</h3>
+  <p>Limit wielkości zlecenia do 10% obrotu spółki był pierwotnie liczony z obrotu w dniu sygnału. To subtelne zaglądanie w przyszłość w drugą stronę: obrót dnia sygnału jest znany, ale transakcja odbywa się następnego dnia, kiedy obrót bywa dużo mniejszy. Poprawna wersja bierze niższą z dwóch wartości i sumuje wszystkie zakupy tej samej spółki w danej sesji. Bez tego kilka sygnałów jednego dnia mogło razem „kupić” więcej, niż rynek był w stanie dać.</p>
+  <h3>Ułamki akcji</h3>
+  <p>Silnik domyślnie kupował ułamkowe ilości akcji, np. 25,69 sztuki. Przy kapitale 10 tys. zł i drogich spółkach zaokrąglenie do całych akcji wyraźnie zmienia wielkość pozycji. Teraz jest to opcja symulacji.</p>
+
+  <h2 id="koszty">4. Odejmowanie realiów rynku</h2>
+  <p>Poniżej ten sam okres 2016–2026 i te same parametry, z kolejno dokładanymi realiami. Spread oznacza tu kupno o tyle procent drożej i sprzedaż o tyle procent taniej niż kurs, niezależnie od prowizji 1%.</p>
+  <table>
+    <thead><tr><th>Wariant</th><th class="n">CAGR</th><th class="n">Maks. DD</th><th class="n">Sharpe</th></tr></thead>
+    <tbody>
+      <tr><td>Bazowy (ułamki akcji, bez spreadu)</td><td class="n">49,2%</td><td class="n">−39%</td><td class="n">1,31</td></tr>
+      <tr><td>Całe akcje</td><td class="n">47,0%</td><td class="n">−39%</td><td class="n">1,28</td></tr>
+      <tr><td>Całe akcje + spread 0,5%</td><td class="n">47,8%</td><td class="n">−39%</td><td class="n">1,28</td></tr>
+      <tr><td>Całe akcje + spread 1%</td><td class="n">40,8%</td><td class="n">−41%</td><td class="n">1,14</td></tr>
+      <tr><td>Bez akcji poniżej 1 zł</td><td class="n">50,3%</td><td class="n">−35%</td><td class="n">1,36</td></tr>
+      <tr><td><b>Realny:</b> całe akcje, spread 0,5%, min. 1 zł</td><td class="n">43,8%</td><td class="n">−38%</td><td class="n">1,22</td></tr>
+    </tbody>
+  </table>
+  <figure><a href="../../assets/img/m02_koszty.png"><img src="../../assets/img/m02_koszty.png" alt="Wykres CAGR w wariantach kosztów" loading="lazy"></a><figcaption>CAGR 2016–2026 w kolejnych wariantach symulacji. We wszystkich obowiązuje prowizja 1% i limit 10% dziennego obrotu.</figcaption></figure>
+  <p>Dwie rzeczy są tu pouczające. Po pierwsze, wariant ze spreadem 0,5% wypadł <i>lepiej</i> niż bez spreadu. To nie efekt ekonomiczny, tylko zależność od ścieżki: niewielka zmiana ceny jednej transakcji zmienia stan konta, a to przestawia wszystkie dalsze decyzje. Różnice rzędu ±2 punktów procentowych między wariantami należy traktować jako szum. Po drugie, pominięcie groszówek nie kosztuje nic, bo ich zyski zjadał spread. Koszty transakcyjne zabierają kilka punktów procentowych rocznie, a nie kilkadziesiąt. Problem z wynikiem leży gdzie indziej.</p>
+
+  <h2 id="benchmark">5. Względem czego mierzyć alfę</h2>
+  <p>Porównanie z WIG-iem jest wygodne, ale nieuczciwe. Strategia kupuje małe i średnie spółki, więc naturalnym punktem odniesienia jest indeks małych spółek. Na danych dziennych z lat 2016–2026 (wariant realny) wychodzi:</p>
+  <table>
+    <thead><tr><th>Benchmark</th><th class="n">Beta</th><th class="n">Alfa Jensena / rok</th></tr></thead>
+    <tbody>
+      <tr><td>WIG (szeroki rynek)</td><td class="n">0,54</td><td class="n">32,4%</td></tr>
+      <tr><td>mWIG40TR (średnie spółki)</td><td class="n">0,60</td><td class="n">30,8%</td></tr>
+      <tr><td>sWIG80TR (małe spółki)</td><td class="n">1,06</td><td class="n">28,9%</td></tr>
+    </tbody>
+  </table>
+  <p>Niska beta względem WIG-u nie oznacza niskiego ryzyka, tylko słabą korelację małych spółek z rynkiem zdominowanym przez banki i spółki Skarbu Państwa. Względem sWIG80TR beta wynosi ok. 1,1, czyli strategia w pełni nosi ryzyko małych spółek. Alfa spada jednak tylko o kilka punktów. Rozkład wyniku (atrybucja) pokazuje też, że niemal cała przewaga pochodzi z <b>doboru spółek</b>, a nie z wyczucia czasu wejścia w rynek. Gotówka stanowi zwykle kilka procent portfela, więc filtr reżimu nie chroni przed bessą. Według backtestu strategia zarabia na tym, <i>co</i> kupuje, a nie <i>kiedy</i>.</p>
+
+  <h2 id="okresy">6. Jedna hossa czy trwała przewaga</h2>
+  <p>Na wykresie w skali logarytmicznej widać, że największa część wzrostu przypada na lata 2020–2021, czyli na hossę małych spółek po krachu covidowym. Dlatego ten sam backtest uruchomiłem osobno dla trzech okresów, za każdym razem od 10 tys. zł:</p>
+  <table>
+    <thead><tr><th>Okres</th><th class="n">CAGR</th><th class="n">sWIG80TR</th><th class="n">Maks. DD</th><th class="n">Sharpe</th></tr></thead>
+    <tbody>
+      <tr><td>2016–2019</td><td class="n">24,5%</td><td class="n">1,4%</td><td class="n">−26%</td><td class="n">1,03</td></tr>
+      <tr><td>2020–2021</td><td class="n">146,5%</td><td class="n">31,7%</td><td class="n">−42%</td><td class="n">1,90</td></tr>
+      <tr><td>2022–10.2026</td><td class="n">33,9%</td><td class="n">12,3%</td><td class="n">−57%</td><td class="n">0,88</td></tr>
+    </tbody>
+  </table>
+  <p>Przewaga w backteście nie jest więc artefaktem jednego epizodu. W latach 2016–2019, gdy indeks małych spółek stał w miejscu, strategia zarabiała ok. 25% rocznie. Okres od 2022 roku pokazuje jednak koszt: obsunięcie −57%, gdy start przypadł na początek bessy. Ten sam okres w wariancie realnym daje CAGR 25,4% i obsunięcie −40%.</p>
+  <blockquote><p>Wszystkie liczby do tego miejsca mają wspólną wadę: parametry strategii były znane, zanim powstał backtest. Zostały dobrane na tej samej historii, na której są oceniane. To jak ocenianie ucznia zadaniami, które sam wcześniej rozwiązał.</p></blockquote>
+
+  <h2 id="walk-forward">7. Walk-forward: parametry bez znajomości przyszłości</h2>
+  <p>Walk-forward symuluje sytuację inwestora, który nie zna przyszłości. Historię dzieli się na okna. W każdym oknie parametry są optymalizowane wyłącznie na danych z poprzednich 24 miesięcy (okno treningowe), a następnie handlują przez kolejne 12 miesięcy, których optymalizator nie widział (okno testowe). Potem okno przesuwa się o rok. Sklejone okna testowe tworzą krzywą kapitału <i>poza próbą</i> (out-of-sample).</p>
+  <ul>
+    <li><b>Okna:</b> 9 okien testowych od stycznia 2018 do października 2026, trening na 24 miesiącach przed każdym z nich.</li>
+    <li><b>Przeszukiwanie:</b> algorytm genetyczny, 2000 zestawów parametrów na okno, wszystkie 20 parametrów wolne.</li>
+    <li><b>Kryterium wyboru:</b> wskaźnik Calmara (CAGR / maks. obsunięcie). Kryteria nagradzające sam zwrot wybierają zestawy z ogromnymi obsunięciami.</li>
+    <li><b>Realia w treningu i w teście:</b> całe akcje, spread 0,5%, limit 10% obrotu, prowizja 1%. Warunki muszą być takie same w obu oknach, inaczej optymalizator wybierze parametry, które działają tylko w idealnym świecie.</li>
+  </ul>
+  <p>Algorytm genetyczny jest losowy, więc cały walk-forward uruchomiłem trzy razy. Dla porównania: te same lata ze stałymi, autorskimi parametrami i tymi samymi realiami wykonania.</p>
+  <table>
+    <thead><tr><th>2018–10.2026</th><th class="n">CAGR</th><th class="n">Maks. DD</th><th class="n">Sharpe</th><th class="n">Alfa vs sWIG80TR</th></tr></thead>
+    <tbody>
+      <tr><td>Stałe parametry (w próbie)</td><td class="n">49,8%</td><td class="n">−41%</td><td class="n">1,23</td><td class="n">33,2%</td></tr>
+      <tr><td>Walk-forward, uruchomienie 1</td><td class="n">13,6%</td><td class="n">−45%</td><td class="n">0,49</td><td class="n">2,7%</td></tr>
+      <tr><td>Walk-forward, uruchomienie 2</td><td class="n">11,3%</td><td class="n">−56%</td><td class="n">0,42</td><td class="n">1,1%</td></tr>
+      <tr><td>Walk-forward, uruchomienie 3</td><td class="n">19,1%</td><td class="n">−43%</td><td class="n">0,65</td><td class="n">7,2%</td></tr>
+      <tr><td>sWIG80TR</td><td class="n">12,5%</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
+    </tbody>
+  </table>
+  <figure><a href="../../assets/img/m01_krzywe.png"><img src="../../assets/img/m01_krzywe.png" alt="Krzywe kapitału: stałe parametry, walk-forward i indeksy" loading="lazy"></a><figcaption>Wartość kapitału w latach 2018–2026 (skala logarytmiczna): stałe parametry dobrane na całej historii, trzy uruchomienia walk-forwardu oraz indeksy sWIG80TR i WIG.</figcaption></figure>
+  <p>To jest najważniejszy wynik badania. Różnica między backtestem ze stałymi parametrami a walk-forwardem wynosi ok. 30–38 punktów procentowych rocznie. To cena wiedzy o przyszłości, której inwestor w 2018 roku nie miał. Poza próbą strategia zarabia mniej więcej tyle co indeks małych spółek, przy porównywalnym albo większym ryzyku. Alfa względem sWIG80TR wynosi od 1 do 7% rocznie i nie jest statystycznie odróżnialna od zera.</p>
+  <p>Rozrzut między uruchomieniami też jest informacją. Te same dane, te same ustawienia, a końcowy kapitał różni się prawie dwukrotnie (od 2,6 do 4,6-krotności wkładu). Jeśli wynik zależy od ziarna generatora liczb losowych, pojedynczy walk-forward nie jest dowodem, tylko jedną próbką z rozkładu.</p>
+  <h3>Najlepszy trening, najgorszy test</h3>
+  <p>Najbardziej pouczające jest okno testowe 2022. Optymalizator trenował wtedy na latach 2020–2021 i znalazł zestaw o najwyższym wyniku treningowym w całym badaniu (Calmar 11,8). W teście ten zestaw stracił 33%. Parametry idealnie dopasowane do hossy małych spółek trafiły na jej koniec. We wszystkich 27 oknach z trzech uruchomień korelacja rang między wynikiem w treningu a zwrotem w teście wynosi −0,24 (p = 0,24): wynik treningowy nie mówi nic o przyszłości, a jeśli już, to raczej ostrzega.</p>
+  <h3>Dłuższy trening nie pomaga</h3>
+  <p>Naturalna hipoteza brzmi: 24 miesiące to za mało, by nauczyć się 20 parametrów. Wydłużenie okna treningowego do 48 miesięcy (testy od 2020 roku) daje CAGR 15,0% wobec 17,9% dla sWIG80TR w tym samym okresie i 47,1% dla stałych parametrów. Dłuższa historia nie zastąpi wiedzy o tym, które parametry są ważne.</p>
+  <figure><a href="../../assets/img/m03_okna.png"><img src="../../assets/img/m03_okna.png" alt="Wyniki okien testowych walk-forwardu" loading="lazy"></a><figcaption>Lewy panel: zwrot w kolejnych latach poza próbą (pierwsze uruchomienie). Prawy: wynik w treningu (Calmar) a zwrot w teście.</figcaption></figure>
+
+  <h2 id="stabilnosc">8. Czy optymalizator znajduje strukturę, czy szum</h2>
+  <p>Jeśli strategia ma prawdziwą przewagę, optymalizator w kolejnych oknach powinien wybierać podobne parametry. Jeśli dopasowuje się do szumu, będzie skakał po całej przestrzeni. Wykres pokazuje cztery najważniejsze parametry liczbowe; oś Y obejmuje cały przeszukiwany zakres.</p>
+  <figure><a href="../../assets/img/m04_parametry.png"><img src="../../assets/img/m04_parametry.png" alt="Stabilność parametrów w kolejnych oknach" loading="lazy"></a><figcaption>Parametry wybrane w kolejnych oknach walk-forwardu (pierwsze uruchomienie). Etykiety osi X to lata testu.</figcaption></figure>
+  <p>Parametry liczbowe skaczą po całym zakresie. Okno wybicia zmienia się z 80 na 450 sesji i z powrotem, poziom stopu od 50% do 80% szczytu pozycji, maksymalna kapitalizacja od 500 mln do 4 mld zł. Gdyby te liczby niosły informację o rynku, nie zmieniałyby się tak gwałtownie z roku na rok.</p>
+  <p>Stabilniejsze są przełączniki strukturalne, czyli wybór, które klocki strategii są włączone. W 27 oknach z trzech uruchomień wejście oparte na najwyższym zamknięciu wybrano 22 razy, a filtr szerokości rynku 19 razy. To sugeruje, że wartość może leżeć w samej architekturze strategii, a nie w dokładnych liczbach. Rozsądniejsza wersja strategii miałaby więc kilka parametrów ustalonych z góry, na podstawie przesłanek ekonomicznych, i najwyżej 2–3 optymalizowane.</p>
+
+  <h2 id="wnioski">9. Wnioski i ograniczenia</h2>
+  <p>Odpowiedź na pytanie z tytułu: z 7394% w backteście poza próbą zostaje ok. 11–19% rocznie, czyli mniej więcej tyle, ile dał indeks małych spółek. Ważniejsza jest jednak kolejność, w jakiej znikał wynik:</p>
+  <ol>
+    <li><b>Błędy w danych i symulacji</b> były niewidoczne i wszystkie działały na korzyść strategii.</li>
+    <li><b>Koszty transakcyjne i płynność</b> zabrały ok. 5 punktów procentowych rocznie, mniej, niż się spodziewałem.</li>
+    <li><b>Uczciwy benchmark</b> zabrał kolejne kilka punktów alfy.</li>
+    <li><b>Wiedza o przyszłości</b>, czyli parametry dobrane na całej historii, odpowiadała za ok. 30–38 punktów procentowych rocznie. To największa pozycja w rachunku.</li>
+  </ol>
+  <p>Nie oznacza to, że strategia nie ma przewagi. Walk-forward pokazuje tylko, że ponowna optymalizacja 20 parametrów na kilku latach danych nie potrafi jej wiarygodnie znaleźć. Do inwestowania potrzebny byłby inny proces: mniej parametrów, ustalonych przed testem, zamrożony plan badania i test na danych, których nikt wcześniej nie oglądał. Wynik backtestu jest hipotezą, a nie wynikiem inwestycyjnym.</p>
+  <h3>Ograniczenia</h3>
+  <ul>
+    <li><b>Survivorship bias:</b> w danych tylko 49 z 476 spółek zakończyło notowania przed 2026 rokiem, a w ciągu 10 lat z GPW zniknęło ich więcej. Część bankrutów, czyli najgorszych możliwych transakcji strategii momentum, nie istnieje w tym świecie.</li>
+    <li><b>Ceny korygowane wstecz:</b> historyczne kursy są skorygowane o splity i dywidendy, więc filtr ceny minimalnej w starszych latach działa w przybliżeniu.</li>
+    <li><b>Pojemność:</b> przy 10 tys. zł wpływ na kurs jest pomijalny. Przy kilkuset tysiącach złotych 10% dziennego obrotu małej spółki porusza już ceną, czego model spreadu nie oddaje.</li>
+    <li><b>Wielokrotne testowanie:</b> w trakcie badania policzyłem kilkadziesiąt tysięcy backtestów. Każdy dodatkowy wariant zwiększa szansę, że któryś wynik jest dziełem przypadku. Następnym krokiem jest formalna kontrola przeuczenia: prawdopodobieństwo przeuczenia backtestu (PBO, metoda CSCV) i Deflated Sharpe Ratio.</li>
+  </ul>
+</main>
+
+<div class="wrap">
+  <footer><span>© 2026 Pierwiastek Ryzyka</span><a href="https://github.com/pierwiastekryzyka">github.com/pierwiastekryzyka</a></footer>
+</div>
+<script src="../../assets/typo.js"></script>
+</body>
+</html>
