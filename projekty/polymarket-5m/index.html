@@ -32,12 +32,14 @@
   <p>Rynki są tworzone automatycznie w kilku interwałach: 5 minut, 15 minut, 1 godzina, 4 godziny i 1 dzień. Poza BTC obejmują m.in. ETH, SOL, XRP, DOGE, BNB i HYPE (stan na 20.11.2026). Wynik rozstrzyga strumień cen Chainlink. Na 5-minutowym BTC nowy rynek startuje co pięć minut, czyli 288 razy na dobę, a w typowym oknie zawieranych jest od ok. 750 do 2 600 transakcji (mediana ok. 1 400).</p>
 
   <h2>Przedmiot badania</h2>
-  <p>Badanie dotyczy wyłącznie 5-minutowych rynków BTC rozliczanych obecną regułą TWAP-60s, obowiązującą od sierpnia 2026. Pytanie jest praktyczne: czy w cenach tych rynków występują nieefektywności, na których da się systematycznie zarabiać po uwzględnieniu opłat, opóźnień i sposobu składania zleceń. Sprawdzono cztery kierunki:</p>
+  <p>Badanie dotyczy wyłącznie 5-minutowych rynków BTC rozliczanych obecną regułą TWAP-60s, obowiązującą od sierpnia 2026. Pytanie jest praktyczne: czy w cenach tych rynków występują nieefektywności, na których da się systematycznie zarabiać po uwzględnieniu opłat, opóźnień i sposobu składania zleceń. Sprawdzono sześć kierunków:</p>
   <ul>
     <li>czy ceny są dobrze skalibrowane względem modelu uczciwego prawdopodobieństwa,</li>
     <li>czy rynek reaguje na ruch BTC z opóźnieniem i jak długo trwa wynikająca z tego przewaga,</li>
     <li>kto na tych rynkach trwale zarabia i jaką strategią,</li>
-    <li>czy przewagę lepiej realizować zleceniem z limitem ceny, czy zleceniem natychmiastowym (FOK).</li>
+    <li>czy przewagę lepiej realizować zleceniem z limitem ceny, czy zleceniem natychmiastowym (FOK),</li>
+    <li>czy da się zarabiać na zleceniach kupna po 0,49 USD wystawionych na obie strony przed startem rynku,</li>
+    <li>czy portfele zyskowne na tych rynkach na początku października nadal mają przewagę.</li>
   </ul>
 
   <h3>W skrócie</h3>
@@ -46,6 +48,8 @@
     <li>Model ma przewagę informacyjną nad ceną, ale trwa ona ok. 3 sekundy. Bez infrastruktury o niskich opóźnieniach nie da się jej wykorzystać.</li>
     <li>Trwale zarabia 13 z ok. 35 tys. portfeli. Wszystkie kupują prawie pewnych faworytów po ok. 0,99 USD, co umożliwia kształt opłaty dla takerów.</li>
     <li>Reguła „kup faworyta po najwyżej 0,98 USD, gdy model daje mu co najmniej 99,9%” daje +2,6¢ na akcję jako zlecenie limit (t = 8,4) i +2,0¢ jako FOK. Pojemność tej strategii jest jednak mała.</li>
+    <li>Zlecenia kupna po 0,49 USD na Up i Down, trzymane do końca okna, tracą ok. 1,4¢ na rynek. Samotna noga to prawie zawsze strona przegrywająca.</li>
+    <li>Dwa portfele zyskowne na tych rynkach jeszcze na początku października nie mają w badanym okresie istotnej przewagi na rynkach 5-minutowych.</li>
   </ul>
   <ol class="toc">
     <li><a href="#regula">Jak dokładnie rozliczane są rynki</a></li>
@@ -55,6 +59,8 @@
     <li><a href="#latencja">Przewaga trwa trzy sekundy</a></li>
     <li><a href="#portfele">Kto trwale zarabia</a></li>
     <li><a href="#zlecenia">Zlecenie limit czy FOK</a></li>
+    <li><a href="#dwie-nogi">Zlecenia po 0,49 USD na obie strony</a></li>
+    <li><a href="#gracze">Zyskowni gracze sprzed miesiąca</a></li>
     <li><a href="#wnioski">Czy da się zarabiać: wnioski i ograniczenia</a></li>
   </ol>
 
@@ -110,12 +116,48 @@
   <figure><a href="../../assets/img/r07_limit_vs_fok.png"><img src="../../assets/img/r07_limit_vs_fok.png" alt="Wykres limit vs FOK" loading="lazy"></a><figcaption>Lewy panel: reguła faworyta jako limit i jako FOK w zależności od opóźnienia. Prawy: wynik makerów według ceny zakupu.</figcaption></figure>
   <blockquote><p>Wynik dla zleceń limit to przybliżenie liczone z wypełnień zleceń innych uczestników. Bez historii księgi zleceń nie wiadomo, ile własnych zleceń by się wypełniło ani na którym miejscu w kolejce by stały. W badaniu przyjęto bardziej optymistyczny wariant.</p></blockquote>
 
-  <h2 id="wnioski">8. Czy da się zarabiać: wnioski i ograniczenia</h2>
+  <h2 id="dwie-nogi">8. Zlecenia po 0,49 USD na obie strony</h2>
+  <p>Przyjmijmy prostą strategię dla bota: 5 minut przed startem rynku wystawić zlecenia kupna Up i Down po 0,49 USD i trzymać je do końca okna. Jeśli wypełnią się obie nogi, para kosztuje 0,98 USD i niezależnie od wyniku wypłaca 1 USD, czyli daje +2¢ bez ryzyka kierunku, a z rabatem dla makera ok. +2,7¢. Jeśli wypełni się tylko jedna, zostaje zwykły zakład kierunkowy kupiony po 0,49 USD.</p>
+  <p>Wypełnienia odtworzono z transakcji innych uczestników w dwóch wariantach: optymistycznym, w którym wystarczy, że cena dotknie limitu (zlecenie na początku kolejki), i ostrożnym, w którym cena musi przez limit przejść (zlecenie na końcu kolejki). Przed startem okna odbywa się tylko ok. 4,4% transakcji, a mediana ceny Up wynosi wtedy 0,50 USD, więc większość wypełnień przypada już na czas trwania rynku.</p>
+  <table>
+    <thead><tr><th>Cena (USD)</th><th class="n">Obie nogi</th><th class="n">Para</th><th class="n">Dotknięcie</th><th class="n">Przejście</th></tr></thead>
+    <tbody>
+      <tr><td>0,45</td><td class="n">76%</td><td class="n">+10,7¢</td><td class="n">−2,3¢</td><td class="n">−2,8¢</td></tr>
+      <tr><td>0,47</td><td class="n">82%</td><td class="n">+6,7¢</td><td class="n">−2,8¢</td><td class="n">−3,7¢</td></tr>
+      <tr><td>0,49</td><td class="n">92%</td><td class="n">+2,7¢</td><td class="n">−1,4¢</td><td class="n">−3,7¢</td></tr>
+    </tbody>
+  </table>
+  <p>Kolumna „Para” to zysk z wypełnionej pary z rabatem, a dwie ostatnie to średni wynik na rynek w obu wariantach wypełnień. Przy 0,49 USD obie nogi wypełniają się w 92% rynków, a wynik i tak jest ujemny. Przyczyną jest negatywna selekcja (adverse selection). Gdy wypełnia się tylko jedna noga, dzieje się tak dlatego, że rynek odjechał w drugą stronę i nikt nie chce już sprzedać zwycięskiej strony po 0,49 USD. Trzymana do końca okna samotna noga przegrywa więc w każdym przypadku i traci ok. 48¢. Jedna taka strata kasuje zysk z ok. 18 wypełnionych par. Tańsze zlecenia dają większy zysk z pary, ale częściej wypełnia się tylko jedna noga. Wszystkie wyniki są istotnie ujemne (t od −5,1 do −11,3) i ujemne w obu połowach okresu.</p>
+  <p>Wcześniejsze anulowanie niewypełnionej nogi nie pomaga: przy anulowaniu na starcie okna albo po 30, 60, 120 lub 240 sekundach wynik we wszystkich 60 wariantach wynosi od −1,1 do −3,8¢ na rynek. Nie pomaga też dokupienie drugiej strony jako taker zaraz po wypełnieniu pierwszej. Przy 0,49 USD daje to −1,5¢ na rynek i stratę w ok. 98% rynków, bo w tym czasie cena już się przesunęła, a dochodzi opłata takera.</p>
+  <figure><a href="../../assets/img/r08_dwie_nogi.png"><img src="../../assets/img/r08_dwie_nogi.png" alt="Wykres wypełnień i wyniku zleceń na obie strony" loading="lazy"></a><figcaption>Lewy panel: odsetek rynków z wypełnionymi obiema nogami i jedną nogą przy zleceniach trzymanych do końca okna. Prawy: średni wynik na rynek według ceny zleceń.</figcaption></figure>
+  <blockquote><p>Statyczne zlecenia po obu stronach są wyłapywane przez szybszych uczestników. Market making na tym rynku wymagałby ciągłego przesuwania i anulowania kwotowań na podstawie szybkiego strumienia cen BTC. Rabat liczono według zasad sprzed 21.11.2026; obecny jest niższy, więc wynik byłby gorszy.</p></blockquote>
+
+  <h2 id="gracze">9. Zyskowni gracze sprzed miesiąca</h2>
+  <p>Na początku października (29.09–4.10) dwa portfele wyraźnie zarabiały na rynkach BTC Up or Down. NIULAI4 handlował tylko w ostatniej minucie okna, wyceniając kontrakty z modelu TWAP, a Atomforge zajmował pozycje kierunkowe przez cały czas trwania rynku. Oba sprawdzono na próbie badania. Widoczne są wyłącznie ich transakcje jako takera, a próba obejmuje co trzeci rynek 5-minutowy.</p>
+  <table>
+    <thead><tr><th>Kwoty w tys. USD</th><th class="n">NIULAI4</th><th class="n">Atomforge</th></tr></thead>
+    <tbody>
+      <tr><td>Rynki z transakcjami</td><td class="n">282</td><td class="n">1 058</td></tr>
+      <tr><td>Obrót</td><td class="n">63</td><td class="n">254</td></tr>
+      <tr><td>Wynik przed opłatami</td><td class="n">+0,3</td><td class="n">+15,2</td></tr>
+      <tr><td>Opłaty</td><td class="n">1,7</td><td class="n">7,5</td></tr>
+      <tr><td>Wynik po opłatach</td><td class="n">−1,4</td><td class="n">+7,6</td></tr>
+      <tr><td>t (wynik na rynek)</td><td class="n">−0,5</td><td class="n">1,1</td></tr>
+      <tr><td>Pierwsza / druga połowa</td><td class="n">−1,1 / −0,3</td><td class="n">+0,2 / +7,4</td></tr>
+      <tr><td>Bez 5% najlepszych rynków</td><td class="n">−7,2</td><td class="n">−25,4</td></tr>
+    </tbody>
+  </table>
+  <p>Żaden z nich nie ma na rynkach 5-minutowych istotnej przewagi. NIULAI4 nadal handluje wyłącznie w ostatniej minucie, ale opłaty zjadają cały jego zysk brutto, a zakupy po 0,30–0,50 USD, które w październiku przynosiły mu najwięcej, dają teraz −4,1 tys. USD. Wynik Atomforge pochodzi niemal w całości z drugiej połowy okresu i z kilku dużych rynków. Według API wartość obu kont w tym czasie wzrosła, ale głównie dzięki rynkom innym niż 5-minutowe rynki BTC.</p>
+  <blockquote><p>Przewaga z dokładnego liczenia TWAP przy obecnych cenach nie pokrywa już opłaty takera. To zgodne z rozdziałem 6: trwale zarabiają tylko kupujący prawie pewnych faworytów.</p></blockquote>
+
+  <h2 id="wnioski">10. Czy da się zarabiać: wnioski i ograniczenia</h2>
   <ul>
     <li>Ceny są efektywne z dokładnością do ok. 3 sekund. Dla uczestnika bez infrastruktury o niskich opóźnieniach systematycznej przewagi nie ma.</li>
     <li>Jedyna nieefektywność, która przetrwała testy poza próbą, dotyczy prawie pewnych faworytów i wynika z kształtu opłaty. Lepszym narzędziem jest tu zlecenie limit niż FOK.</li>
     <li>Pojemność jest mała: rzędu kilkuset dolarów zysku dziennie na całym rynku. Trzeba pamiętać, że należy prawdopodobnie konkurować z innymi botami o tę samą płynność.</li>
     <li>Niepełna wycena luki na otwarciu jest realna, ale zbyt mała, by pokryć koszty transakcyjne.</li>
+    <li>Zlecenia kupna po obu stronach przed startem rynku tracą we wszystkich wariantach, bo samotna noga to prawie zawsze strona przegrywająca.</li>
+    <li>Gracze zyskowni na tych rynkach jeszcze w październiku nie mają dziś istotnej przewagi na rynkach 5-minutowych.</li>
   </ul>
   <p>Badanie obejmuje tylko rynki 5-minutowe na BTC. Naturalne kolejne kroki to sprawdzenie, czy wyniki przenoszą się na inne interwały (15 minut, 1 godzina, 4 godziny, 1 dzień) i inne aktywa, oraz test reguły faworyta na nowych danych, z planem zapisanym przed jego rozpoczęciem.</p>
   <p>Od 21.11.2026 opłata takera dla 5- i 15-minutowych rynków BTC spada z 0,07 do 0,05. W tym wariancie wynik FOK przy braku opóźnienia rośnie z +2,02¢ do +2,10¢.</p>
