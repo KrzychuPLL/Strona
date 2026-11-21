@@ -29,7 +29,7 @@ h2 { font-size: 22px; line-height: 1.3; font-weight: 600; margin: 44px 0 12px; }
 h3 { font-size: 18px; font-weight: 600; margin: 26px 0 6px; }
 p { margin: 0 0 16px; }
 .meta { font: 13.5px/1.6 var(--mono); color: var(--muted); margin: 0 0 22px; }
-.label { font: 500 13px var(--mono); text-transform: lowercase; color: var(--muted); margin: 40px 0 14px; border-bottom: 1px solid var(--ink); padding-bottom: 6px; }
+.label { font: 500 13px var(--mono); color: var(--muted); margin: 40px 0 14px; border-bottom: 1px solid var(--ink); padding-bottom: 6px; }
 
 /* lista badań */
 .list { list-style: none; margin: 0; padding: 0; }
