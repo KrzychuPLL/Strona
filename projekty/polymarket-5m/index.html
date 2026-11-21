@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Czy Polymarket wie, jak się rozlicza? · Pierwiastek Ryzyka</title>
-<meta name="description" content="Mikrostruktura 5-minutowych rynków Bitcoin Up or Down na Polymarkecie: faktyczna reguła rozliczenia, latencja, portfele i zlecenia limit vs FOK.">
+<title>Nieefektywności na 5-minutowych rynkach BTC na Polymarkecie · Pierwiastek Ryzyka</title>
+<meta name="description" content="Czy na 5-minutowych rynkach Bitcoin Up or Down na Polymarkecie występują nieefektywności, na których da się zarabiać? Kalibracja, latencja, portfele, zlecenia limit i FOK.">
 <link rel="icon" href="../../assets/favicon.png">
 <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,64 +20,83 @@
 </div>
 
 <main class="wrap article">
-  <h1>Czy Polymarket wie, jak się rozlicza? Mikrostruktura 5-minutowych rynków BTC</h1>
+  <h1>Nieefektywności na 5-minutowych rynkach BTC na Polymarkecie</h1>
   <p class="meta">listopad 2026 · dane 23.10–19.11.2026 · 2 680 rynków · 4,2 mln transakcji</p>
   <p class="links"><a href="../../assets/Polymarket_5m_raport.pdf">raport (pdf, 24 s.)</a><a href="https://github.com/KrzychuPLL/new-2">kod</a></p>
-  <p>Co pięć minut Polymarket otwiera rynek „Bitcoin Up or Down”: czy cena BTC na koniec okna będzie wyższa niż na początku. Sprawdziłem, jak te rynki są naprawdę rozliczane, jak dobrze wyceniają prawdopodobieństwo, jak szybko reagują na ruch BTC i kto na nich trwale zarabia.</p>
+
+  <h2>Rynki predykcyjne</h2>
+  <p>Rynek predykcyjny to giełda kontraktów na wynik przyszłego zdarzenia. Kontrakt wypłaca 1 USD, jeśli zdarzenie nastąpi, i nic, jeśli nie nastąpi. Cenę kontraktu, która mieści się między 0 a 1 USD, można więc czytać jako rynkową ocenę prawdopodobieństwa: kontrakt po 0,62 USD oznacza, że uczestnicy wyceniają szansę zdarzenia na ok. 62%. Jednym z największych takich rynków jest Polymarket. Handel odbywa się tam w księdze zleceń, a uczestnicy mogą zarówno wystawiać zlecenia z limitem ceny, jak i przyjmować oferty innych.</p>
+
+  <h2>Rynki „Bitcoin Up or Down”</h2>
+  <p>Polymarket prowadzi serię krótkoterminowych rynków na kierunek ceny kryptowalut. Każdy z nich zadaje to samo pytanie: czy cena na koniec okna będzie wyższa niż na jego początku. Rynek ma dwa tokeny, Up i Down, a zwycięski wypłaca 1 USD.</p>
+  <p>Rynki są tworzone automatycznie w kilku interwałach: 5 minut, 15 minut, 1 godzina, 4 godziny i 1 dzień. Poza BTC obejmują m.in. ETH, SOL, XRP, DOGE, BNB i HYPE (stan na 20.11.2026). Wynik rozstrzyga strumień cen Chainlink. Na 5-minutowym BTC nowy rynek startuje co pięć minut, czyli 288 razy na dobę, a w typowym oknie zawieranych jest od ok. 750 do 2 600 transakcji (mediana ok. 1 400).</p>
+
+  <h2>Przedmiot badania</h2>
+  <p>Badanie dotyczy wyłącznie 5-minutowych rynków BTC rozliczanych obecną regułą TWAP-60s, obowiązującą od sierpnia 2026. Pytanie jest praktyczne: czy w cenach tych rynków występują nieefektywności, na których da się systematycznie zarabiać po uwzględnieniu opłat, opóźnień i sposobu składania zleceń. Sprawdzono cztery kierunki:</p>
+  <ul>
+    <li>czy ceny są dobrze skalibrowane względem modelu uczciwego prawdopodobieństwa,</li>
+    <li>czy rynek reaguje na ruch BTC z opóźnieniem i jak długo trwa wynikająca z tego przewaga,</li>
+    <li>kto na tych rynkach trwale zarabia i jaką strategią,</li>
+    <li>czy przewagę lepiej realizować zleceniem z limitem ceny, czy zleceniem natychmiastowym (FOK).</li>
+  </ul>
+
   <h3>W skrócie</h3>
   <ul>
-    <li>Rynki rozlicza inna reguła, niż wynika z dosłownego odczytania opisu. Zrekonstruowana reguła zgadza się z wynikami w 98,4% rynków, dosłowne odczytanie opisu w 87%.</li>
-    <li>Rynek wchłania ruch BTC w ok. 3 sekundy. Później model nie wie nic, czego nie wie cena.</li>
-    <li>Jedyna trwała przewaga należy do szybkich botów kupujących prawie pewnych faworytów. Zlecenie limit daje tu +2,6¢ na akcję (t = 8,4), FOK +2,0¢.</li>
+    <li>Ceny są dobrze skalibrowane: Brier score ceny rynkowej wynosi 0,1543, a modelu 0,1546. Jedyne systematyczne odchylenie to niepełna wycena luki na otwarciu (ok. 63%), zbyt mała, by pokryć koszty.</li>
+    <li>Model ma przewagę informacyjną nad ceną, ale trwa ona ok. 3 sekundy. Bez infrastruktury o niskich opóźnieniach nie da się jej wykorzystać.</li>
+    <li>Trwale zarabia 13 z ok. 35 tys. portfeli. Wszystkie kupują prawie pewnych faworytów po ok. 0,99 USD, co umożliwia kształt opłaty.</li>
+    <li>Reguła „kup faworyta po najwyżej 0,98 USD, gdy model daje mu co najmniej 99,9%” daje +2,6¢ na akcję jako zlecenie limit (t = 8,4) i +2,0¢ jako FOK. Pojemność tej strategii jest mała.</li>
   </ul>
   <ol class="toc">
-    <li><a href="#regula">Reguła rozliczenia, której nie ma w opisie</a></li>
+    <li><a href="#regula">Jak dokładnie rozliczane są rynki</a></li>
     <li><a href="#model">Model uczciwego prawdopodobieństwa</a></li>
-    <li><a href="#kalibracja">Rynek jest dobrze skalibrowany</a></li>
+    <li><a href="#kalibracja">Czy ceny są skalibrowane</a></li>
     <li><a href="#backtest">Pułapka naiwnego backtestu</a></li>
-    <li><a href="#latencja">Przewaga żyje trzy sekundy</a></li>
-    <li><a href="#portfele">Kto trwale wygrywa</a></li>
+    <li><a href="#latencja">Przewaga trwa trzy sekundy</a></li>
+    <li><a href="#portfele">Kto trwale zarabia</a></li>
     <li><a href="#zlecenia">Zlecenie limit czy FOK</a></li>
-    <li><a href="#wnioski">Wnioski, ograniczenia i dalsze badania</a></li>
+    <li><a href="#wnioski">Czy da się zarabiać: wnioski i ograniczenia</a></li>
   </ol>
 
-  <h2>Dane</h2>
-  <p>Badanie obejmuje 2 680 rynków BTC 5-minutowych z okresu 23.10–19.11.2026 (co trzeci rynek, co 15 minut) i wszystkie ich transakcje z Polymarket Data API: 4,2 mln transakcji od 35 tys. portfeli, 61 mln USD obrotu. Cenę BTC biorę co sekundę z Binance (BTCUSDT spot). Test poza próbą to podział okresu na dwie połowy po 1 340 rynków.</p>
-  <blockquote><p><b>Zastrzeżenie.</b> Rynki rozlicza strumień Chainlink, do którego nie mam bezpośredniego dostępu. Cenę BTC przybliżam danymi z Binance, więc wartości modelu i rekonstrukcja reguły są przybliżone. Proxy zgadza się z oficjalnymi wynikami w 98,4% rynków, a wszystkie rozbieżności dotyczą wyników „na styk” (margines poniżej 2 punktów bazowych).</p></blockquote>
+  <h2>Dane i metoda</h2>
+  <p>Próba obejmuje 2 680 rynków BTC 5-minutowych z okresu 23.10–19.11.2026 (co trzeci rynek, czyli co 15 minut) i wszystkie ich transakcje z Polymarket Data API: 4,2 mln transakcji od ok. 35 tys. portfeli, łącznie 61 mln USD obrotu. Cenę BTC pobrano co sekundę z Binance (BTCUSDT spot). Do testów poza próbą okres podzielono na dwie połowy po 1 340 rynków: wynik uznaje się za wiarygodny tylko wtedy, gdy utrzymuje się w obu.</p>
+  <blockquote><p><b>Zastrzeżenie.</b> Rynki rozlicza strumień Chainlink, do którego badanie nie ma bezpośredniego dostępu. Cenę BTC przybliżono danymi z Binance, więc wartości modelu i rekonstrukcja reguły rozliczenia są przybliżone. Przybliżenie zgadza się z oficjalnymi wynikami w 98,4% rynków, a wszystkie rozbieżności dotyczą wyników „na styk”, z marginesem poniżej 2 punktów bazowych.</p></blockquote>
 
-  <h2 id="regula">1. Reguła rozliczenia, której nie ma w opisie</h2>
-  <p>Opis rynku mówi, że wynik zależy od średniej ceny (TWAP) „z zakresu czasu”. Dosłowne odczytanie, czyli średnia z całego 5-minutowego okna porównana z ceną startową, zgadza się z oficjalnymi wynikami tylko w 87,0% rynków. Sprawdziłem kilka wariantów i jeden pasuje niemal idealnie:</p>
-  <blockquote><p><b>Up wygrywa, gdy średnia cena z ostatnich 60 sekund okna jest nie niższa niż średnia z 60 sekund przed jego startem.</b> To strumień Chainlink „TWAP 60s”. Zgodność: 98,4%.</p></blockquote>
-  <p>Ma to dwie praktyczne konsekwencje. Po pierwsze, „cena do pobicia” to średnia sprzed startu, a nie cena spot w chwili otwarcia, więc rynek startuje z przewagą jednej strony. Po drugie, w ostatniej minucie wynik jest w dużej części przesądzony przez już zrealizowaną średnią.</p>
+  <h2 id="regula">1. Jak dokładnie rozliczane są rynki</h2>
+  <p>Opis rynku mówi, że wynik zależy od średniej ceny (TWAP) „z zakresu czasu”. Do zbudowania modelu potrzebna jest jednak reguła precyzyjna, dlatego kilka jej możliwych odczytań porównano z oficjalnymi wynikami. Dosłowne odczytanie, czyli średnia z całego 5-minutowego okna porównana z ceną startową, zgadza się z wynikami tylko w 87,0% rynków. Niemal idealnie pasuje wariant:</p>
+  <blockquote><p><b>Up wygrywa, gdy średnia cena z ostatnich 60 sekund okna jest nie niższa niż średnia z 60 sekund przed jego startem.</b> Zgodność z oficjalnymi wynikami: 98,4%.</p></blockquote>
+  <p>Wynikają z tego dwie praktyczne konsekwencje. Po pierwsze, „cena do pobicia” to średnia sprzed startu, a nie cena w chwili otwarcia, więc już na starcie jedna strona ma przewagę. Po drugie, w ostatniej minucie wynik jest w dużej części przesądzony przez zrealizowaną już część średniej.</p>
 
   <h2 id="model">2. Model uczciwego prawdopodobieństwa</h2>
-  <p>Przyjmuję, że cena BTC w skali sekund zachowuje się jak ruch Browna bez dryfu, ze zmiennością σ liczoną z ostatniej godziny. Dla reguły TWAP-60s, przed ostatnią minutą (t ≤ 240 s), wychodzi wzór w zamkniętej postaci:</p>
+  <p>Przyjmijmy, że cena BTC w skali sekund zachowuje się jak ruch Browna bez dryfu, a jej zmienność σ szacujemy z ostatniej godziny. Dla reguły TWAP-60s, przed ostatnią minutą (t ≤ 240 s), prawdopodobieństwo wygranej Up ma postać zamkniętą:</p>
   <div class="formula">P(Up) = Φ( ln(S_t / B) / (σ · √(260 − t)) )</div>
-  <p>gdzie B to średnia z 60 s przed startem, a S<sub>t</sub> bieżąca cena. Efektywny horyzont jest o 40 sekund krótszy niż czas do końca okna, bo uśrednianie ostatniej minuty zmniejsza wariancję wyniku. W ostatniej minucie wzór uwzględnia już zrealizowaną część średniej. Oba warianty sprawdziłem symulacją Monte Carlo. Model nie ma żadnych parametrów dopasowanych do wyników rynków.</p>
+  <p>gdzie B to średnia z 60 s przed startem, a S<sub>t</sub> to bieżąca cena. Efektywny horyzont jest o 40 sekund krótszy niż czas do końca okna, bo uśrednianie ostatniej minuty zmniejsza wariancję wyniku. W ostatniej minucie wzór uwzględnia dodatkowo zrealizowaną część średniej. Oba warianty zweryfikowano symulacją Monte Carlo. Model nie ma żadnych parametrów dopasowanych do wyników rynków, więc nie może być „przeuczony”.</p>
 
-  <h2 id="kalibracja">3. Rynek jest dobrze skalibrowany</h2>
-  <p>Cena kontraktu działa jak prognoza prawdopodobieństwa. Brier score ceny rynkowej wynosi 0,1543, a modelu 0,1546, czyli rynek jest co najmniej tak dobry jak model. Model wypada nieco lepiej w fazie 180–240 s, rynek w ostatniej minucie.</p>
+  <h2 id="kalibracja">3. Czy ceny są skalibrowane</h2>
+  <p>Jeśli rynek jest efektywny, kontrakty wyceniane na 30% powinny wygrywać w ok. 30% przypadków. Tak właśnie jest: Brier score ceny rynkowej wynosi 0,1543, a modelu 0,1546, czyli cena jest co najmniej tak dobrą prognozą jak model. Model wypada nieco lepiej w fazie 180–240 s, rynek w ostatniej minucie.</p>
   <figure><a href="../../assets/img/r01_kalibracja.png"><img src="../../assets/img/r01_kalibracja.png" alt="Wykres kalibracji ceny rynkowej i modelu" loading="lazy"></a><figcaption>Kalibracja: przewidywane prawdopodobieństwo a zrealizowana częstość wygranej Up.</figcaption></figure>
-  <p>Jest jedno systematyczne odchylenie. Na otwarciu rynek uwzględnia tylko ok. 63% luki między ceną spot a „ceną do pobicia” (nachylenie 0,63 w obu połowach okresu). Przewaga z tego tytułu jest jednak za mała, żeby przetrwać koszty.</p>
-  <figure><a href="../../assets/img/r02_luka_otwarcia.png"><img src="../../assets/img/r02_luka_otwarcia.png" alt="Wykres luki otwarcia" loading="lazy"></a><figcaption>Luka otwarcia: model, cena rynkowa i zrealizowana częstość w decylach luki.</figcaption></figure>
-  <p>Częste są też „comebacki”. W 14,7% rynków strona, która ostatecznie wygrała, kosztowała w ostatnich 3 minutach 0,20 $ lub mniej. Rynek wycenia je jednak poprawnie: strona, która spadła np. do 0,10 $, wygrywa mniej więcej tak często, jak wynika z jej ceny, więc kupowanie takich „okazji” po opłacie traci ok. 1¢ na akcję.</p>
+  <h3>Luka na otwarciu</h3>
+  <p>Jedno odchylenie jest systematyczne. Na otwarciu rynek uwzględnia tylko ok. 63% różnicy między ceną bieżącą a „ceną do pobicia” (nachylenie 0,63 w obu połowach okresu). To nieefektywność w ścisłym sensie, ale zbyt mała, by przetrwała opłaty i poślizg.</p>
+  <figure><a href="../../assets/img/r02_luka_otwarcia.png"><img src="../../assets/img/r02_luka_otwarcia.png" alt="Wykres luki otwarcia" loading="lazy"></a><figcaption>Luka na otwarciu: model, cena rynkowa i zrealizowana częstość w decylach luki.</figcaption></figure>
+  <h3>Odwrócenia</h3>
+  <p>Częste są też odwrócenia. W 14,7% rynków strona, która ostatecznie wygrała, kosztowała w ostatnich 3 minutach 0,20 USD lub mniej. Rynek wycenia je jednak poprawnie: strona, która spadła np. do 0,10 USD, wygrywa mniej więcej tak często, jak wynika z jej ceny. Kupowanie takich „okazji” po opłacie traci w większości przedziałów czasu od 0,6 do 1,6¢ na akcję, bez ani jednego istotnie dodatniego wyniku.</p>
 
   <h2 id="backtest">4. Pułapka naiwnego backtestu</h2>
-  <p>Strategia „kupuj, gdy model różni się od ceny o ponad 10 punktów procentowych” daje w naiwnym backteście +9,6¢ na akcję przy t = 9,7. To jednak złudzenie: model widzi bieżącą cenę BTC, a cena rynkowa w backteście pochodzi z transakcji sprzed kilku sekund. Gdy sygnał liczę ze świeżej ceny, a wejście z transakcji, które naprawdę odbyły się 1–6 s później (z opłatą i poślizgiem 1¢), wynik spada do −1,5¢ na akcję.</p>
-  <blockquote><p>Większość „przewag” w danych o wysokiej częstotliwości to w rzeczywistości opóźnienie ceny. Pierwszym testem każdego wyniku powinno być pytanie: czy dałoby się go zrealizować po cenie dostępnej w chwili sygnału?</p></blockquote>
+  <p>Strategia „kupuj, gdy model różni się od ceny o ponad 10 punktów procentowych” daje w naiwnym backteście +9,6¢ na akcję przy t = 9,7. To złudzenie: model widzi bieżącą cenę BTC, a cena rynkowa w backteście pochodzi z transakcji sprzed kilku sekund. Gdy sygnał liczy się ze świeżej ceny, a wejście z transakcji, które faktycznie odbyły się 1–6 s później (z opłatą i poślizgiem 1¢), wynik spada do −1,5¢ na akcję.</p>
+  <blockquote><p>Większość „przewag” w danych o wysokiej częstotliwości to w rzeczywistości opóźnienie ceny. Pierwszym testem każdego wyniku powinno być pytanie, czy dałoby się go zrealizować po cenie dostępnej w chwili sygnału.</p></blockquote>
 
-  <h2 id="latencja">5. Przewaga żyje trzy sekundy</h2>
-  <p>W regresji logistycznej wyniku rynku na cenę i model, model wnosi informację ponad cenę (t = 5,5). Gdy jednak podaję modelowi cenę BTC opóźnioną o kilka sekund, ta informacja szybko znika: t wynosi 4,1 przy 1 s, 2,6 przy 2 s, 1,2 przy 3 s i zero od 5 s. Rynek wchłania ruch BTC w ok. 3 sekundy. W drugą stronę efektu nie ma: cena na Polymarkecie nie przewiduje przyszłego ruchu BTC na Binance.</p>
+  <h2 id="latencja">5. Przewaga trwa trzy sekundy</h2>
+  <p>W regresji logistycznej wyniku rynku na cenę i model, model wnosi informację ponad cenę (t = 5,5). Gdy jednak model dostaje cenę BTC opóźnioną o kilka sekund, ta informacja szybko znika: t wynosi 4,1 przy opóźnieniu 1 s, 2,6 przy 2 s, 1,2 przy 3 s i zero od 5 s. Rynek uwzględnia ruch BTC w ok. 3 sekundy. W drugą stronę efektu nie ma: cena na Polymarkecie nie przewiduje przyszłego ruchu BTC na Binance.</p>
   <figure><a href="../../assets/img/r05_latencja.png"><img src="../../assets/img/r05_latencja.png" alt="Wykres zaniku przewagi z opóźnieniem" loading="lazy"></a><figcaption>Lewy panel: siła informacji modelu ponad cenę w zależności od opóźnienia danych BTC. Prawy: wynik reguły faworyta w zależności od opóźnienia sygnału.</figcaption></figure>
 
-  <h2 id="portfele">6. Kto trwale wygrywa</h2>
-  <p>Każdy rekord z API to transakcja biorcy płynności (takera), więc wynik makerów to lustrzane odbicie. Na poziomie pojedynczej transakcji rynek jest niemal idealnie uczciwy: takerzy przed opłatami tracą łącznie 18 tys. USD przy 61 mln USD obrotu, czyli −0,015¢ na akcję. Opłaty to 1,09 mln USD.</p>
-  <p>Umiejętność istnieje, ale jest rzadka. Portfele istotnie zyskowne w pierwszej połowie okresu są na plusie w drugiej w 56% przypadków, wobec 36% dla wszystkich aktywnych portfeli. 13 portfeli ma istotny zysk w obu połowach i wszystkie robią to samo: kupują prawie pewnego faworyta po ok. 0,99 $, w ponad połowie przypadków w ostatnich 2 minutach. Przegrały 8 z 3 016 transakcji.</p>
-  <blockquote><p>Kluczem jest kształt opłaty: 0,07 · p · (1 − p) na akcję. Przy cenie 0,50 to 1,75¢, przy 0,99 już tylko ok. 0,07¢. Skrajne ceny to jedyna nisza, w której opłata nie zjada przewagi takera.</p></blockquote>
+  <h2 id="portfele">6. Kto trwale zarabia</h2>
+  <p>Każdy rekord z API to transakcja biorcy płynności (takera), więc wynik wystawców zleceń (makerów) jest jej lustrzanym odbiciem. Na poziomie pojedynczej transakcji rynek jest niemal idealnie uczciwy: takerzy przed opłatami tracą łącznie 18 tys. USD przy 61 mln USD obrotu, czyli −0,015¢ na akcję. Opłaty wyniosły 1,09 mln USD.</p>
+  <p>Umiejętność istnieje, ale jest rzadka. Portfele istotnie zyskowne w pierwszej połowie okresu są na plusie w drugiej w 56% przypadków, wobec 36% dla wszystkich aktywnych portfeli. 13 portfeli ma istotny zysk w obu połowach i wszystkie robią to samo: kupują prawie pewnego faworyta po ok. 0,99 USD, w ponad połowie przypadków w ostatnich 2 minutach. Przegrały 8 z 3 016 transakcji.</p>
+  <blockquote><p>Kluczem jest kształt opłaty: 0,07 · p · (1 − p) na akcję. Przy cenie 0,50 to 1,75¢, a przy 0,99 już tylko ok. 0,07¢. Skrajne ceny to jedyna nisza, w której opłata nie zjada przewagi takera.</p></blockquote>
   <figure><a href="../../assets/img/r06_portfele.png"><img src="../../assets/img/r06_portfele.png" alt="Wykres portfeli" loading="lazy"></a><figcaption>Trwałość wyników portfeli między połowami okresu i profil portfeli z trwałą przewagą.</figcaption></figure>
 
   <h2 id="zlecenia">7. Zlecenie limit czy FOK</h2>
-  <p>Polymarket przez API obsługuje zlecenia limit (GTC, GTD), zlecenia natychmiastowe FOK („wszystko albo nic”) i FAK (wypełnij, ile się da) oraz flagę post-only. Sprawdziłem tę samą regułę, „kup faworyta po 0,90–0,98 $, gdy model daje mu co najmniej 99,9%”, w dwóch wariantach wykonania:</p>
+  <p>Polymarket przez API obsługuje zlecenia z limitem ceny (GTC, GTD), zlecenia natychmiastowe FOK („wszystko albo nic”) i FAK (wypełnij, ile się da) oraz flagę post-only. Tę samą regułę, „kup faworyta po 0,90–0,98 USD, gdy model daje mu co najmniej 99,9%”, sprawdzono w dwóch wariantach wykonania:</p>
   <table>
     <thead><tr><th>Opóźnienie sygnału</th><th class="n">Limit (maker, bez opłaty)</th><th class="n">FOK (taker, z opłatą)</th></tr></thead>
     <tbody>
@@ -86,19 +105,19 @@
       <tr><td>5 s</td><td class="n">+1,28¢ (t = 2,6)</td><td class="n">+0,50¢ (t = 0,75)</td></tr>
     </tbody>
   </table>
-  <p>Zlecenie limit wypada lepiej i wolniej traci przewagę z opóźnieniem. Wynik jest istotny w obu połowach okresu. Bez filtra modelu przewagi nie ma: wszyscy makerzy razem wychodzą na zero, z +2,0¢, gdy model jest po ich stronie, i −2,3¢, gdy przeciw. FOK działa tylko na małą skalę: przy 100 akcjach daje +1,9¢ i wypełnia się w 34% rynków, przy 1 000 akcjach wynik jest zerowy.</p>
+  <p>Zlecenie limit wypada lepiej i wolniej traci przewagę z opóźnieniem. Wynik jest istotny w obu połowach okresu. Bez filtra modelu przewagi nie ma: wszyscy makerzy razem wychodzą na zero, z +2,0¢, gdy model jest po ich stronie, i −2,3¢, gdy jest przeciw. FOK działa tylko na małą skalę: przy 100 akcjach daje +1,9¢ i wypełnia się w 34% rynków, a przy 1 000 akcji wynik jest zerowy.</p>
   <figure><a href="../../assets/img/r07_limit_vs_fok.png"><img src="../../assets/img/r07_limit_vs_fok.png" alt="Wykres limit vs FOK" loading="lazy"></a><figcaption>Lewy panel: reguła faworyta jako limit i jako FOK w zależności od opóźnienia. Prawy: wynik makerów według ceny zakupu.</figcaption></figure>
-  <blockquote><p>Wynik dla zleceń limit to przybliżenie liczone z wypełnień zleceń innych uczestników. Bez historii księgi zleceń nie wiadomo, ile własnych zleceń by się wypełniło ani na którym miejscu w kolejce byśmy stali.</p></blockquote>
+  <blockquote><p>Wynik dla zleceń limit to przybliżenie liczone z wypełnień zleceń innych uczestników. Bez historii księgi zleceń nie wiadomo, ile własnych zleceń by się wypełniło ani na którym miejscu w kolejce by stały.</p></blockquote>
 
-  <h2 id="wnioski">8. Wnioski, ograniczenia i dalsze badania</h2>
-  <ul class="clean">
-    <li>Rynek jest efektywny z dokładnością do ok. 3 sekund. Dla uczestnika bez infrastruktury o niskich opóźnieniach przewagi nie ma.</li>
-    <li>Faktyczna reguła rozliczenia różni się od tego, co sugeruje opis rynku, i da się ją odtworzyć wyłącznie z danych.</li>
-    <li>Jedyna trwała przewaga należy do botów kupujących prawie pewnych faworytów. Umożliwia ją kształt opłaty, a lepszym narzędziem jest zlecenie limit niż FOK.</li>
-    <li>Pojemność jest mała: rzędu kilkuset dolarów zysku dziennie na całym rynku, zanim trzeba konkurować o tę samą płynność.</li>
+  <h2 id="wnioski">8. Czy da się zarabiać: wnioski i ograniczenia</h2>
+  <ul>
+    <li>Ceny są efektywne z dokładnością do ok. 3 sekund. Dla uczestnika bez infrastruktury o niskich opóźnieniach systematycznej przewagi nie ma.</li>
+    <li>Jedyna nieefektywność, która przetrwała testy poza próbą, dotyczy prawie pewnych faworytów i wynika z kształtu opłaty. Lepszym narzędziem jest tu zlecenie limit niż FOK.</li>
+    <li>Pojemność jest mała: rzędu kilkuset dolarów zysku dziennie na całym rynku, zanim trzeba konkurować z innymi botami o tę samą płynność.</li>
+    <li>Niepełna wycena luki na otwarciu jest realna, ale zbyt mała, by pokryć koszty transakcyjne.</li>
   </ul>
-  <p>Badanie obejmuje tylko rynki 5-minutowe na BTC. Polymarket listuje też rynki 15-minutowe, godzinowe, 4-godzinne i dzienne oraz rynki na ETH, SOL, XRP, DOGE, BNB, HYPE i ZEC, wszystkie rozliczane tym samym typem strumienia Chainlink. Naturalny następny krok to sprawdzenie, czy wyniki przenoszą się na inne interwały i aktywa, oraz test reguły faworyta na nowych danych, z planem zapisanym przed jego rozpoczęciem.</p>
-  <p>Od 21.11.2026 opłata takera dla 5- i 15-minutowych rynków BTC spada z 0,07 do 0,05. W raporcie policzyłem też ten wariant: wynik FOK przy braku opóźnienia rośnie z +2,02¢ do +2,10¢.</p>
+  <p>Badanie obejmuje tylko rynki 5-minutowe na BTC. Naturalne kolejne kroki to sprawdzenie, czy wyniki przenoszą się na inne interwały (15 minut, 1 godzina, 4 godziny, 1 dzień) i inne aktywa, oraz test reguły faworyta na nowych danych, z planem zapisanym przed jego rozpoczęciem.</p>
+  <p>Od 21.11.2026 opłata takera dla 5- i 15-minutowych rynków BTC spada z 0,07 do 0,05. W tym wariancie wynik FOK przy braku opóźnienia rośnie z +2,02¢ do +2,10¢.</p>
   <p class="links"><a href="../../assets/Polymarket_5m_raport.pdf">raport (pdf)</a><a href="https://github.com/KrzychuPLL/new-2">kod</a></p>
 </main>
 
