@@ -38,6 +38,11 @@ p { margin: 0 0 16px; }
 .list a { font-weight: 600; }
 .list p { margin: 4px 0 0; color: var(--muted); font-size: 16px; line-height: 1.5; }
 
+/* kanały */
+.channels { list-style: none; margin: 4px 0 0; padding: 0; font: 15px/1.6 var(--mono); }
+.channels li { display: grid; grid-template-columns: 90px 1fr; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.channels li span { color: var(--muted); }
+
 /* artykuł */
 .article p, .article li, .article blockquote p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
 .article p.meta, .article p.links { text-align: left; }
